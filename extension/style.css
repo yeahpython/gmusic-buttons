@@ -1,0 +1,99 @@
+body {
+	font-family: Times New Roman !important;
+	/*font-size : 12pt !important;*/
+	overflow: visible !important;
+}
+
+.listingsignupbar, .promotedlink, .commentsignupbar, .dfp-ad-container, .side {
+	display:none !important;
+}
+
+.thumbnail, .arrow {
+	display:none !important;
+}
+
+.content {
+	margin-top:0px !important;
+}
+.domain {
+
+}
+#header {
+	display:none !important;
+}
+
+.expando-button, .footer-parent {
+	display:none;
+}
+
+.title, .usertext-body {
+	/*text-transform : lowercase;*/
+	font-family : Times New Roman;
+	font-size:10pt !important;
+}
+.domain {
+	display:inline-block !important;
+}
+
+.trending-subreddits {
+	display:none;
+}
+
+.rank {
+	display:none;
+}
+
+.domain {
+	vertical-align: top;
+}
+
+.usertext-body {
+	padding-left:40px;
+}
+
+.usertext {
+   display:inline;
+}
+
+.tagline .expand {
+	display: initial;
+}
+
+.title {
+	display:inline-block !important;
+}
+
+.tagline * {
+	display: none;
+}
+
+.tagline {
+	display : inline !important;
+	position : absolute;
+	background-color:white;
+}
+
+.tagline:hover * {
+	display : initial;
+}
+
+.tagline:not(:hover) {
+	max-width:14px;
+	max-height:14px;
+	overflow: hidden;
+	border:solid 1px #eee;
+	color:white !important;
+}
+.tagline:hover {
+	max-width:none;
+	max-height:none;
+	color:none !important;
+}
+
+.tagline:hover {
+	border:solid 1px gray;
+}
+
+.flat-list {
+	display:none !important;
+}
