@@ -3,8 +3,9 @@
   "description": "Control Google Music from your address bar.",
   "version": "0.0.0",
   "permissions": [
-    "https://*/*",
-    "http://*/*"
+    // "https://*/*",
+    // "http://*/*"
+    "http://play.google.com/"
   ],
   "background": {
     "scripts":["background.js"],
@@ -18,8 +19,9 @@
   },
   "content_scripts" : [{
     "matches" : ["*://play.google.com/music*"],
-    "css" : ["style.css"],
-    "js" : ["third-party/jquery-1.12.0.min.js", "content_script.js"]
+    "css" : [/*"style.css"*/],
+    "js" : ["third-party/jquery-1.12.0.min.js", "content_script.js"],
+    "run_at" : "document_start"
   }],
   "web_accessible_resources": [],
   "manifest_version": 2
