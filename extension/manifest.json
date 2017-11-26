@@ -3,8 +3,6 @@
   "description": "Control Google Music from your address bar.",
   "version": "0.0.0",
   "permissions": [
-    // "https://*/*",
-    // "http://*/*"
     "http://play.google.com/"
   ],
   "background": {
@@ -13,16 +11,22 @@
   },
   "browser_action": {
     "default_icon": {
-      "19": "images/emoji-19.png",
-      "38": "images/emoji-38.png"
+      "19": "images/no_song_19.png",
+      "38": "images/no_song_38.png"
     }
   },
   "content_scripts" : [{
     "matches" : ["*://play.google.com/music*"],
-    "css" : [/*"style.css"*/],
     "js" : ["third-party/jquery-1.12.0.min.js", "content_script.js"],
     "run_at" : "document_start"
   }],
-  "web_accessible_resources": [],
+  "web_accessible_resources": [
+    "images/no_song_19.png",
+    "images/no_song_38.png",
+    "images/play_19.png",
+    "images/play_38.png",
+    "images/pause_19.png",
+    "images/pause_38.png"
+  ],
   "manifest_version": 2
 }
