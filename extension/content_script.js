@@ -38,6 +38,14 @@ function try_to_play() {
 	// $("#haha-custom-loading-div").remove();
 }
 
+function try_to_ff() {
+  $("#player-bar-forward").click();
+}
+
+function try_to_rw() {
+  $("#player-bar-rewind").click();
+}
+
 function try_to_pause() {
   var is_playing = $("#player-bar-play-pause[title^='Pause']").length > 0;
 	if (is_playing) {
@@ -61,7 +69,12 @@ port.onMessage.addListener(function(msg) {
   console.log(msg);
   if (msg.play === true) {
   	wait_for_load(try_to_play);
+  } else if (msg.play === "fast_forward") {
+  	wait_for_load(try_to_ff);
+  } else if (msg.play === "rewind") {
+  	wait_for_load(try_to_rw);
   } else {
+  	console.assert(msg.play === false);
   	wait_for_load(try_to_pause);
   }
 });

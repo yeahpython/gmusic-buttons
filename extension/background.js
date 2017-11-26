@@ -19,18 +19,48 @@ var persistent_ports = [];
 var persistent_ports_status = [];
 var persistent_ports_last_change = [];
 var port_queue = [];
-function requestPlay() {
-  // State is paused -> play button is visible
-  var message = {"play": (badge_state !== "playing")};
+function requestPlay(special_button=false) {
+  if (special_button === "fast_forward") {
+    var message = {"play": ((badge_state === "playing") ? "fast_forward" : true)};
+  } else if (special_button === "rewind") {
+    var message = {"play" : "rewind"};
+  } else {
+    // State is paused -> play button is visible
+    var message = {"play": (badge_state !== "playing")};
+  }
+
   console.log(message);
   var found_port = false;
 
   var decorated_change_timestamps = [];
   for (var i = 0; i < persistent_ports_last_change.length; i++) {
-    decorated_change_timestamps.push({index:i, visible:persistent_ports_status[i].has_focus, time:persistent_ports_last_change[i]});
+    decorated_change_timestamps.push({
+      index   : i, 
+      playing : (persistent_ports_status[i].play_state == "playing"), 
+      visible : persistent_ports_status[i].has_focus, 
+      time    : persistent_ports_last_change[i]
+    });
     
   }
-  if (message.play) {
+  if (message.play === "fast_forward" || message.play === "rewind") {
+    // If one is playing, choose it first. Otherwise do it on the visible one, followed by time.
+    var compfn = function(a,b) {
+      // Sort by playing and not playing
+      var playing_diff = b.playing - a.playing;
+      if (playing_diff) {
+        return playing_diff;
+      }
+
+      // Break ties with visibility
+      var first_diff = b.visible - a.visible;
+      if (first_diff) {
+        return first_diff;
+      }
+
+      // Finally go from most recent to least recent
+      return a.time - b.time;
+    }
+  } else if (message.play === true) {
     // If one is visible, choose it first, otherwise use time.
     var compfn = function(a,b) {
       var first_diff = b.visible - a.visible;
@@ -60,8 +90,8 @@ function requestPlay() {
       persistent_ports[index].postMessage(message);
       found_port = true;
       console.log("Sent command to port " + index + ".");
-      // Everyone gets the pause messages but only one should play
-      if (message.play) {
+      // Everyone gets the pause and fast forward messages but only one should play
+      if (message.play === true || message.play === "rewind" || message.play === "fast_forward") {
         break;
       }
     } catch (err) {
@@ -165,40 +195,55 @@ chrome.runtime.onConnect.addListener(function(port) {
 });
 
 var USE_NEW_WINDOW = false;
-chrome.browserAction.onClicked.addListener(function(tab) {
-  chrome.tabs.query({active:true, currentWindow: true}, function(tabs) {
-    var original_tab_id = tabs[0].id;
-
-    // if (persistent_port !== undefined || waiting_for_port_to_open) {
-    
-    var found_port = requestPlay();
-    // Attempt to send a play request.
-    if (found_port || waiting_for_port_to_open) {
-      return;
-    }
-    waiting_for_port_to_open = true;
-    // Try to open a music tab
-    
-    if (USE_NEW_WINDOW) {
-      chrome.windows.getCurrent(function(original_window) { 
-        chrome.windows.create(
-          {
-            url     : getMusicUrl(), 
-            focused : false, 
-            left    : original_window.left, 
-            top     : original_window.top/*, 
-            width   : original_window.width, 
-            height  : original_window.height*/
-          }, 
-          function(window) {
-            // var music_tab_id = window.tabs[0].id;
-            chrome.windows.update(original_window.id, { focused: true}, function() {
-          });
+function handleClick(special_button = false) {
+  var found_port = requestPlay(special_button);
+  // Attempt to send a play request.
+  if (found_port || waiting_for_port_to_open) {
+    return;
+  }
+  waiting_for_port_to_open = true;
+  // Try to open a music tab
+  
+  if (USE_NEW_WINDOW) {
+    chrome.windows.getCurrent(function(original_window) { 
+      chrome.windows.create(
+        {
+          url     : getMusicUrl(), 
+          focused : false, 
+          left    : original_window.left, 
+          top     : original_window.top/*, 
+          width   : original_window.width, 
+          height  : original_window.height*/
+        }, 
+        function(window) {
+          // var music_tab_id = window.tabs[0].id;
+          chrome.windows.update(original_window.id, { focused: true}, function() {
         });
       });
-    } else {
-      chrome.tabs.create({url: getMusicUrl(), pinned:true, active:true}, function(tab) {
-      });
+    });
+  } else {
+    chrome.tabs.create({url: getMusicUrl(), pinned:true, active:true}, function(tab) {
+    });
+  }
+}
+
+
+chrome.browserAction.onClicked.addListener(function(tab) {
+  // chrome.tabs.query({active:true, currentWindow: true}, function(tabs){
+    handleClick();
+  // });
+});
+
+// Treat any outside message as fast forward
+chrome.runtime.onMessageExternal.addListener(
+  function(request, sender, sendResponse) {
+    if (request.fastForward) {
+      console.log("Got fast forward command.");
+      handleClick("fast_forward");
+      sendResponse({status:"OK"});
+    } else if (request.rewind) {
+      console.log("Got rewind command.");
+      handleClick("rewind");
+      sendResponse({status:"OK"});
     }
   });
-});
