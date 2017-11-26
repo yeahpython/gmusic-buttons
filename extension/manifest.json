@@ -1,9 +1,9 @@
 {
-  "name": "Google Music Address Bar Controls",
+  "name": "One-Click Controls for Google Music",
   "description": "Control Google Music from your address bar.",
   "version": "0.0.0",
   "permissions": [
-    "http://play.google.com/"
+    "http://play.google.com/music/"
   ],
   "background": {
     "scripts":["background.js"],
