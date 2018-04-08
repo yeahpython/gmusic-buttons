@@ -1,41 +1,38 @@
-var LOAD_CHECKING_SELECTOR = "[data-id='shuffle-my-library']"
-var INITIAL_SELECTOR = "#iflFab";
+console.log = function() {}
+
 var DEFAULT_SELECTOR = "[data-id='shuffle-my-library']"
+var LOAD_CHECKING_SELECTOR = DEFAULT_SELECTOR;
 
 var visible = true;
 
 $(window).focus(function() {
   visible = true;
-  console.log("set visible to true");
   sendStatusIfChanged(true);
 });
 
 $(window).blur(function() {
   visible = false;
-  console.log("set visible to false");
   sendStatusIfChanged(true);
 });
 
+function song_is_selected() {
+  return ($("#currently-playing-title").length !== 0);
+}
+
+// Keep on spamming that shuffle button until something starts
+function try_to_shuffle() {
+  if (!song_is_selected()) {
+    $(DEFAULT_SELECTOR).click();
+    setTimeout(try_to_shuffle, 1000);
+  }
+}
+
 function try_to_play() {
-	if ($("#player-bar-play-pause").css("pointer-events") === "none") {
-	  // Wait a bit so that the play button for the most recent song has time to load
-	  if ($(INITIAL_SELECTOR).first().length) {
-	  	setTimeout(function(){
-	  		$(INITIAL_SELECTOR).click();
-	  	  setTimeout(sendStatusIfChanged, 100)
-      }, 1000);
-	  } else {
-	  	// Shuffle seems to be available everywhere so just use that as the backup.
-	  	setTimeout(function(){
-        $(DEFAULT_SELECTOR).click();
-	  	  setTimeout(sendStatusIfChanged, 100);
-      }, 1000);
-	  }
-	} else {
-	  $("#player-bar-play-pause").click();
-	  setTimeout(sendStatusIfChanged, 100)
-	}
-	// $("#haha-custom-loading-div").remove();
+  // if ($("#player-bar-play-pause").css("pointer-events") !== "none") {
+    $("#player-bar-play-pause").click();
+    setTimeout(sendStatusIfChanged, 100)
+  // }
+  // $("#haha-custom-loading-div").remove();
 }
 
 function try_to_ff() {
@@ -46,68 +43,86 @@ function try_to_rw() {
   $("#player-bar-rewind").click();
 }
 
+function is_playing() {
+  return ($("#player-bar-play-pause[title^='Pause']").length > 0);
+}
+
 function try_to_pause() {
-  var is_playing = $("#player-bar-play-pause[title^='Pause']").length > 0;
-	if (is_playing) {
+  if (is_playing()) {
     $("#player-bar-play-pause").click();
-	  setTimeout(sendStatusIfChanged, 100)
+    setTimeout(sendStatusIfChanged, 100)
   }
 }
 
-function wait_for_load(callback) {
-	if ($(LOAD_CHECKING_SELECTOR).get().length === 0) {
-		setTimeout(function(){wait_for_load(callback)}, 100);
-		console.log("Waiting for load...");
-		return;
-	} else {
-		callback();
-	}
-}
-
-var port = chrome.runtime.connect({name: "audio"});
-port.onMessage.addListener(function(msg) {
-  console.log(msg);
-  if (msg.play === true) {
-  	wait_for_load(try_to_play);
-  } else if (msg.play === "fast_forward") {
-  	wait_for_load(try_to_ff);
-  } else if (msg.play === "rewind") {
-  	wait_for_load(try_to_rw);
+function wait_for_load(callback, selector = LOAD_CHECKING_SELECTOR) {
+  if ($(selector).get().length === 0) {
+    // console.log('Waiting for $("' + selector + '")...');
+    setTimeout(function(){wait_for_load(callback, selector)}, 100);
+    return;
   } else {
-  	console.assert(msg.play === false);
-  	wait_for_load(try_to_pause);
+    callback();
   }
-});
+}
 
-var status = "";
+
+
+function is_playing() {
+  return $("#player-bar-play-pause[title^='Pause']").length > 0;
+}
+
+var NO_SONG = 0;
+var PLAYING = 1;
+var PAUSED  = 2;
+
+var string_statuses = ["has no song", "playing", "paused"];
+
+var status = -1;
 var last_visible = undefined;
 function sendStatusIfChanged(force_message = false) {
   var has_no_song = $("#currently-playing-title").length == 0;
-  // if (!has_no_song && status != "has no song") {
-  //   console.log("Currently playing:", $("#currently-playing-title").text())
-  // }
-	var is_playing = $("#player-bar-play-pause[title^='Pause']").length > 0;
-	var new_status = "";
-	if (has_no_song) {
-		new_status = "has no song"
-	} else {
-		new_status = is_playing ? "playing" : "paused"
-	}
-	if ((new_status != status) || (last_visible != visible) || force_message) {
-		status = new_status;
-    last_visible = visible;
-		port.postMessage({"status": {"play_state" : status, "has_focus":!!last_visible}});
-	}
+  var playing = is_playing();
+  // console.log("playing? " + playing);
+  var new_status = "";
+  if (has_no_song) {
+    new_status = NO_SONG;
+  } else {
+    new_status = playing ? PLAYING : PAUSED;
+  }
+  if ((new_status != status) || (last_visible != visible) || force_message) {
+    status = new_status
+    last_visible = !!visible;
+    var message = {"status": {"play_state" : string_statuses[status], "has_focus":!!last_visible}}
+    port.postMessage(message);
+    // console.log(JSON.stringify(message));
+  }
 }
 
 
 function repeatedlySendStatus() {
-	sendStatusIfChanged();
-	setTimeout(repeatedlySendStatus, 1000);
+  sendStatusIfChanged();
+  // console.log("tick");
+  setTimeout(repeatedlySendStatus, 100);
 }
 
-repeatedlySendStatus();
-
-
-
+var port = chrome.runtime.connect({name: "audio"});
+// iFrames WAIT FOREVER.
+wait_for_load(function(){
+  port.onMessage.addListener(function(msg) {
+    console.log("Got message: " + JSON.stringify(msg));
+    if (msg.play === true) {
+      wait_for_load(try_to_play);
+    } else if (msg.play === "launch") {
+      wait_for_load(try_to_shuffle);
+    } else if (msg.play === "fast_forward") {
+      wait_for_load(try_to_ff);
+    } else if (msg.play === "rewind") {
+      wait_for_load(try_to_rw);
+    } else {
+      console.assert(msg.play === false);
+      wait_for_load(try_to_pause);
+    }
+  });
+  port.postMessage({ready:"true"});
+  repeatedlySendStatus();
+});
 

@@ -1,4 +1,4 @@
-var mainExtensionId = "dgnkgljkjdhgdnhadligpclplkilldlo";
+var mainExtensionId = "iplcnndnkaahamcojidocbfdagapbcal";
 chrome.browserAction.onClicked.addListener(function(tab) {
   chrome.runtime.sendMessage(mainExtensionId, {fastForward: true}, function(response){
     if (response === undefined) {
